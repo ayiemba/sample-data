@@ -63,7 +63,7 @@
 
         // 3. Fetch and render GeoJSON features
         const loadGeoJSON = async () => {
-            const response = await fetch('https://ayiemba.github.io/sample-data/countries.geojson');
+            const response = await fetch('https://ayiemba.github.io/sample-data/capitals.geojson');
             const geojson = await response.json();
             // Convert GeoJSON to OpenLayers Features
             const format = new ol.format.GeoJSON();
