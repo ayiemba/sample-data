@@ -129,102 +129,72 @@
                 return c1Inside || c2Inside; // At least one endpoint visible
             };
 
-        
+            // 4.1 Create Groups for Points, Lines, and Polygons
+            const polygonGroup = d3Svg.append("g").attr("class", "polygons");
+            const lineGroup = d3Svg.append("g").attr("class", "lines");
+            const pointGroup = d3Svg.append("g").attr("class", "points");          
+            
 
-        // Render Points (Handle visibility)
-        data.points.forEach((point) => {
-            const coordinate = ol.proj.transform([point.lon, point.lat], 'EPSG:4326', projection);
-            const pixel = map.getPixelFromCoordinate(coordinate);
+            // 4.2 Render Points (Handle visibility)
+            data.points.forEach((point) => {
+                const coordinate = ol.proj.transform([point.lon, point.lat], 'EPSG:4326', projection);
+                const pixel = map.getPixelFromCoordinate(coordinate);
 
-            if (pixel) { // Only render if pixel is valid
-                d3Svg.append("circle")
-                    .attr("cx", pixel[0])
-                    .attr("cy", pixel[1])
-                    .attr("r", point.magnitude * 2)
-                    .attr("fill", "rgba(255, 0, 0, 0.5)")
-                    .attr("stroke", "red")
-                    .attr("stroke-width", 1);
-            }
-        });
+                if (pixel) { // Only render if pixel is valid
+                    pointGroup.append("circle")
+                        .attr("cx", pixel[0])
+                        .attr("cy", pixel[1])
+                        .attr("r", point.magnitude * 2)
+                        .attr("fill", "rgba(255, 0, 0, 0.5)")
+                        .attr("stroke", "red")
+                        .attr("stroke-width", 1);
+                }
+            });
 
-        // Render Lines (Handle partial visibility)
-data.lines.forEach((line) => {
-    const lineData = line.coordinates.map((coord) => {
-        return ol.proj.transform(coord, 'EPSG:4326', projection);
-    });
-
-    // Filter the line data based on visibility
-    const visibleCoords = lineData.filter((coord, index) => {
-        const prevCoord = lineData[index - 1];
-        return index === 0 || isSegmentVisible(prevCoord, coord);
-    });
-
-    // Only render if there are valid coordinates
-    if (visibleCoords.length > 1) {
-        const validCoords = visibleCoords.filter(coord => {
-            const pixel = map.getPixelFromCoordinate(coord);
-            return pixel !== null; // Only include valid pixels
-        });
-
-        // Only draw the line if there are valid pixels
-        if (validCoords.length > 1) {
-            const linePath = d3.line()
-                .x(d => {
-                    const pixel = map.getPixelFromCoordinate(d);
-                    return pixel ? pixel[0] : null;
-                })
-                .y(d => {
-                    const pixel = map.getPixelFromCoordinate(d);
-                    return pixel ? pixel[1] : null;
+            // 4.3 Render Lines (Handle partial visibility)
+            data.lines.forEach((line) => {
+                const lineData = line.coordinates.map((coord) => {
+                    return ol.proj.transform(coord, 'EPSG:4326', projection);
                 });
 
-            d3Svg.append("path")
-                .data([validCoords])
-                .attr("d", linePath)
-                .attr("stroke", "blue")
-                .attr("stroke-width", 2)
-                .attr("fill", "none");
-        }
-    }
-});
+                // Filter the line data based on visibility
+                const visibleCoords = lineData.filter((coord, index) => {
+                    const prevCoord = lineData[index - 1];
+                    return index === 0 || isSegmentVisible(prevCoord, coord);
+                });
 
-
-        // Render Polygons (Handle visibility)
-        data.polygons.forEach((polygon) => {
-            const coordinates = polygon.coordinates[0].map((coord) => {
-                return ol.proj.transform(coord, 'EPSG:4326', projection);
-            });
-
-            // Filter the polygon vertices based on visibility
-            const validCoords = coordinates.filter(coord => {
-                const pixel = map.getPixelFromCoordinate(coord);
-                return pixel !== null; // Only include valid pixels
-            });
-
-            if (validCoords.length > 2) { // Need at least 3 points to form a polygon
-                const polygonPath = d3.line()
-                    .x(d => {
-                        const pixel = map.getPixelFromCoordinate(d);
-                        return pixel ? pixel[0] : null;
-                    })
-                    .y(d => {
-                        const pixel = map.getPixelFromCoordinate(d);
-                        return pixel ? pixel[1] : null;
+                // Only render if there are valid coordinates
+                if (visibleCoords.length > 1) {
+                    const validCoords = visibleCoords.filter(coord => {
+                        const pixel = map.getPixelFromCoordinate(coord);
+                        return pixel !== null; // Only include valid pixels
                     });
 
-                d3Svg.append("path")
-                    .data([validCoords])
-                    .attr("d", polygonPath)
-                    .attr("fill", "rgba(0, 255, 0, 0.5)")
-                    .attr("stroke", "green")
-                    .attr("stroke-width", 2);
-            }
-        });
+                    // Only draw the line if there are valid pixels
+                    if (validCoords.length > 1) {
+                        const linePath = d3.line()
+                            .x(d => {
+                                const pixel = map.getPixelFromCoordinate(d);
+                                return pixel ? pixel[0] : null;
+                            })
+                            .y(d => {
+                                const pixel = map.getPixelFromCoordinate(d);
+                                return pixel ? pixel[1] : null;
+                            });
 
-        // Render Multipolygons (Handle visibility)
-        data.multipolygons.forEach((multipolygon) => {
-            multipolygon.coordinates.forEach((polygon) => {
-                const coordinates = polygon[0].map((coord) => {
+                        lineGroup.append("path")
+                            .data([validCoords])
+                            .attr("d", linePath)
+                            .attr("stroke", "blue")
+                            .attr("stroke-width", 2)
+                            .attr("fill", "none");
+                    }
+                }
+            });
+
+            // 4.4 Render Polygons (Handle visibility)
+            data.polygons.forEach((polygon) => {
+                const coordinates = polygon.coordinates[0].map((coord) => {
                     return ol.proj.transform(coord, 'EPSG:4326', projection);
                 });
 
@@ -235,7 +205,7 @@ data.lines.forEach((line) => {
                 });
 
                 if (validCoords.length > 2) { // Need at least 3 points to form a polygon
-                    const multipolygonPath = d3.line()
+                    const polygonPath = d3.line()
                         .x(d => {
                             const pixel = map.getPixelFromCoordinate(d);
                             return pixel ? pixel[0] : null;
@@ -245,17 +215,50 @@ data.lines.forEach((line) => {
                             return pixel ? pixel[1] : null;
                         });
 
-                    d3Svg.append("path")
+                    polygonGroup.append("path")
                         .data([validCoords])
-                        .attr("d", multipolygonPath)
-                        .attr("fill", "rgba(0, 0, 255, 0.5)")
-                        .attr("stroke", "blue")
+                        .attr("d", polygonPath)
+                        .attr("fill", "rgba(0, 255, 0, 1)")
+                        .attr("stroke", "green")
                         .attr("stroke-width", 2);
                 }
             });
-        });
 
-    };
+            // 4.5 Render Multipolygons (Handle visibility)
+            data.multipolygons.forEach((multipolygon) => {
+                multipolygon.coordinates.forEach((polygon) => {
+                    const coordinates = polygon[0].map((coord) => {
+                        return ol.proj.transform(coord, 'EPSG:4326', projection);
+                    });
+
+                    // Filter the polygon vertices based on visibility
+                    const validCoords = coordinates.filter(coord => {
+                        const pixel = map.getPixelFromCoordinate(coord);
+                        return pixel !== null; // Only include valid pixels
+                    });
+
+                    if (validCoords.length > 2) { // Need at least 3 points to form a polygon
+                        const multipolygonPath = d3.line()
+                            .x(d => {
+                                const pixel = map.getPixelFromCoordinate(d);
+                                return pixel ? pixel[0] : null;
+                            })
+                            .y(d => {
+                                const pixel = map.getPixelFromCoordinate(d);
+                                return pixel ? pixel[1] : null;
+                            });
+
+                        polygonGroup.append("path")
+                            .data([validCoords])
+                            .attr("d", multipolygonPath)
+                            .attr("fill", "rgba(0, 0, 255, 0.5)")
+                            .attr("stroke", "blue")
+                            .attr("stroke-width", 2);
+                    }
+                });
+            });
+
+        };
         // 5. Sync SVG with Map Viewport
         map.on('postrender', () => {
             const rect = map.getViewport().getBoundingClientRect();
