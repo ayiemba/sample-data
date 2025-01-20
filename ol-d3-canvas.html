@@ -217,7 +217,7 @@
         loadGeoJSON().then((features) => {
             const simplifiedFeatures = simplifyFeatures(features); // Simplify features
             renderD3(simplifiedFeatures); // Initial render
-            map.on('postrender', () => renderD3(simplifiedFeatures)); // Redraw after render
+            //map.on('postrender', () => renderD3(simplifiedFeatures)); // Redraw after render
             map.on('moveend', () => renderD3(simplifiedFeatures));   // Redraw after movement
         });
 
