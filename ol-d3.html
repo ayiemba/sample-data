@@ -123,77 +123,67 @@
             const extent = map.getView().calculateExtent();
             const projection = map.getView().getProjection();
 
+            // Helper function to check if a line segment is within the extent
+            const isSegmentVisible = (coord1, coord2) => {
+                const c1Inside = ol.extent.containsCoordinate(extent, coord1);
+                const c2Inside = ol.extent.containsCoordinate(extent, coord2);
+                return c1Inside || c2Inside; // At least one endpoint visible
+            };
+
             // Render Points
             data.points.forEach((d) => {
                 const coordinate = ol.proj.transform([d.lon, d.lat], 'EPSG:4326', projection);
-                if (ol.extent.containsCoordinate(extent, coordinate)) {
-                    const pixel = map.getPixelFromCoordinate(coordinate);
-                    if (pixel) {
-                        d3Context.beginPath();
-                        d3Context.arc(pixel[0], pixel[1], d.magnitude * 2, 0, 2 * Math.PI);
-                        d3Context.fillStyle = 'rgba(255, 0, 0, 0.5)';
-                        d3Context.fill();
-                        d3Context.strokeStyle = 'red';
-                        d3Context.stroke();
-                    }
+                const pixel = map.getPixelFromCoordinate(coordinate);
+                if (pixel) {
+                    d3Context.beginPath();
+                    d3Context.arc(pixel[0], pixel[1], d.magnitude * 2, 0, 2 * Math.PI);
+                    d3Context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    d3Context.fill();
+                    d3Context.strokeStyle = 'red';
+                    d3Context.stroke();
                 }
             });
 
-            // Render Lines
+            // Render Lines (Handle partial visibility)
             data.lines.forEach((line) => {
                 d3Context.beginPath();
                 line.coordinates.forEach((coord, index) => {
-                    const coordinate = ol.proj.transform(coord, 'EPSG:4326', projection);
+                    const transformedCoord = ol.proj.transform(coord, 'EPSG:4326', projection);
+                    const pixel = map.getPixelFromCoordinate(transformedCoord);
 
-                    // Check if the coordinate is within the visible map extent
-                    if (ol.extent.containsCoordinate(extent, coordinate)) {
-                        const pixel = map.getPixelFromCoordinate(coordinate);
+                    if (pixel) {
+                        if (index === 0) {
+                            d3Context.moveTo(pixel[0], pixel[1]);
+                        } else {
+                            const prevCoord = line.coordinates[index - 1];
+                            const prevTransformedCoord = ol.proj.transform(prevCoord, 'EPSG:4326', projection);
+                            const prevPixel = map.getPixelFromCoordinate(prevTransformedCoord);
 
-                        // Ensure the pixel is valid
-                        if (pixel) {
-                            if (index === 0) {
-                                d3Context.moveTo(pixel[0], pixel[1]);
-                            } else {
+                            // Check visibility of line segment
+                            if (prevPixel && isSegmentVisible(prevTransformedCoord, transformedCoord)) {
                                 d3Context.lineTo(pixel[0], pixel[1]);
                             }
-                        } else {
-                            //console.warn('Pixel is null for coordinate:', coord);
                         }
-                    } else {
-                        //console.warn('Coordinate outside extent:', coord);
                     }
                 });
-
-                // Set styles and draw the line
                 d3Context.strokeStyle = 'blue';
                 d3Context.lineWidth = 2;
                 d3Context.stroke();
             });
 
-
-
-
-
             // Render Polygons
             data.polygons.forEach((polygon) => {
                 d3Context.beginPath();
                 polygon.coordinates[0].forEach((coord, index) => {
-                    const coordinate = ol.proj.transform(coord, 'EPSG:4326', projection);
+                    const transformedCoord = ol.proj.transform(coord, 'EPSG:4326', projection);
+                    const pixel = map.getPixelFromCoordinate(transformedCoord);
 
-                    // Ensure the coordinate is within the map extent
-                    if (ol.extent.containsCoordinate(extent, coordinate)) {
-                        const pixel = map.getPixelFromCoordinate(coordinate);
-
-                        // Check if pixel is valid
-                        if (pixel) {
-                            if (index === 0) {
-                                d3Context.moveTo(pixel[0], pixel[1]);
-                            } else {
-                                d3Context.lineTo(pixel[0], pixel[1]);
-                            }
+                    if (pixel) {
+                        if (index === 0) {
+                            d3Context.moveTo(pixel[0], pixel[1]);
+                        } else {
+                            d3Context.lineTo(pixel[0], pixel[1]);
                         }
-                    } else {
-                        //console.warn('Coordinate outside extent:', coord);
                     }
                 });
                 d3Context.closePath();
@@ -208,22 +198,15 @@
                 multipolygon.coordinates.forEach((polygon) => {
                     d3Context.beginPath();
                     polygon[0].forEach((coord, index) => {
-                        const coordinate = ol.proj.transform(coord, 'EPSG:4326', projection);
+                        const transformedCoord = ol.proj.transform(coord, 'EPSG:4326', projection);
+                        const pixel = map.getPixelFromCoordinate(transformedCoord);
 
-                        // Ensure the coordinate is within the map extent
-                        if (ol.extent.containsCoordinate(extent, coordinate)) {
-                            const pixel = map.getPixelFromCoordinate(coordinate);
-
-                            // Check if pixel is valid
-                            if (pixel) {
-                                if (index === 0) {
-                                    d3Context.moveTo(pixel[0], pixel[1]);
-                                } else {
-                                    d3Context.lineTo(pixel[0], pixel[1]);
-                                }
+                        if (pixel) {
+                            if (index === 0) {
+                                d3Context.moveTo(pixel[0], pixel[1]);
+                            } else {
+                                d3Context.lineTo(pixel[0], pixel[1]);
                             }
-                        } else {
-                            //console.warn('Coordinate outside extent:', coord);
                         }
                     });
                     d3Context.closePath();
@@ -233,9 +216,8 @@
                     d3Context.stroke();
                 });
             });
-
-
         };
+
 
         // 5. Sync Canvas with Map Viewport
         map.on('postrender', () => {
