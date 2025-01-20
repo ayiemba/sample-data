@@ -1,0 +1,761 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "DZA",
+        "capital": "Algiers"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          3.0588,
+          36.7538
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "AGO",
+        "capital": "Luanda"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.235,
+          -8.8368
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "BEN",
+        "capital": "Porto-Novo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.6158,
+          6.4969
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "BWA",
+        "capital": "Gaborone"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          25.9201,
+          -24.6282
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "BFA",
+        "capital": "Ouagadougou"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -1.5197,
+          12.3642
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "BDI",
+        "capital": "Gitega"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          29.9256,
+          -3.4281
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "CMR",
+        "capital": "Yaound\u00e9"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          11.5021,
+          3.848
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "CPV",
+        "capital": "Praia"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -23.5087,
+          14.9331
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "CAF",
+        "capital": "Bangui"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          18.5582,
+          4.3947
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "TCD",
+        "capital": "N'Djamena"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.0481,
+          12.1348
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "COM",
+        "capital": "Moroni"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          43.2551,
+          -11.6833
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "COG",
+        "capital": "Brazzaville"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.2842,
+          -4.2677
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "CIV",
+        "capital": "Yamoussoukro"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -5.276,
+          6.8276
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "COD",
+        "capital": "Kinshasa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          15.2663,
+          -4.4419
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "DJI",
+        "capital": "Djibouti"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          43.15,
+          11.5721
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "EGY",
+        "capital": "Cairo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.2357,
+          30.0444
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "GNQ",
+        "capital": "Malabo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          8.7817,
+          3.7523
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "ERI",
+        "capital": "Asmara"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          38.9339,
+          15.3229
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SWZ",
+        "capital": "Mbabane"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.1333,
+          -26.3167
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "ETH",
+        "capital": "Addis Ababa"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          38.7469,
+          9.0301
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "GAB",
+        "capital": "Libreville"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          9.4578,
+          0.4162
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "GMB",
+        "capital": "Banjul"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -16.5901,
+          13.4549
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "GHA",
+        "capital": "Accra"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.1869,
+          5.6037
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "GIN",
+        "capital": "Conakry"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -13.7008,
+          9.6412
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "GNB",
+        "capital": "Bissau"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -15.6267,
+          11.8817
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "KEN",
+        "capital": "Nairobi"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.8219,
+          -1.2921
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "LSO",
+        "capital": "Maseru"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          27.471,
+          -29.3156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "LBR",
+        "capital": "Monrovia"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -10.7969,
+          6.3156
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "LBY",
+        "capital": "Tripoli"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          13.1913,
+          32.8872
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MDG",
+        "capital": "Antananarivo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          47.5166,
+          -18.8792
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MWI",
+        "capital": "Lilongwe"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.7741,
+          -13.9626
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MLI",
+        "capital": "Bamako"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -7.9922,
+          12.6392
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MRT",
+        "capital": "Nouakchott"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -15.98,
+          18.0735
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MUS",
+        "capital": "Port Louis"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          57.5,
+          -20.1667
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MAR",
+        "capital": "Rabat"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -6.8326,
+          34.0209
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "MOZ",
+        "capital": "Maputo"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          32.5732,
+          -25.9655
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "NAM",
+        "capital": "Windhoek"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          17.0832,
+          -22.5609
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "NER",
+        "capital": "Niamey"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.117,
+          13.5123
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "NGA",
+        "capital": "Abuja"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          7.4951,
+          9.0579
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "RWA",
+        "capital": "Kigali"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.0587,
+          -1.9706
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "STP",
+        "capital": "S\u00e3o Tom\u00e9"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.728,
+          0.3365
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SEN",
+        "capital": "Dakar"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -17.4677,
+          14.7167
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SYC",
+        "capital": "Victoria"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          55.4513,
+          -4.6191
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SLE",
+        "capital": "Freetown"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -13.2317,
+          8.4657
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SOM",
+        "capital": "Mogadishu"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          45.3182,
+          2.0469
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "ZAF",
+        "capital": "Pretoria"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.1881,
+          -25.7461
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SSD",
+        "capital": "Juba"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.5782,
+          4.8594
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "SDN",
+        "capital": "Khartoum"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          32.5599,
+          15.5007
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "TZA",
+        "capital": "Dodoma"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          35.746,
+          -6.163
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "TGO",
+        "capital": "Lom\u00e9"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          1.2074,
+          6.1319
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "TUN",
+        "capital": "Tunis"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.1658,
+          36.8188
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "UGA",
+        "capital": "Kampala"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          32.5825,
+          0.3476
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "ZMB",
+        "capital": "Lusaka"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          28.3228,
+          -15.3875
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "iso3": "ZWE",
+        "capital": "Harare"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          31.053,
+          -17.8292
+        ]
+      }
+    }
+  ]
+}
