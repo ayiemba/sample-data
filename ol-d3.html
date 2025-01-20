@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenLayers with D3 Direct Canvas Manipulation</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css">
+  <style>
+    html, body, #map {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .custom-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none; /* Prevent interference with map interactions */
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <canvas id="d3-canvas" class="custom-canvas"></canvas>
+  <script>
+    // 1. Initialize the OpenLayers Map
+    const map = new ol.Map({
+      target: 'map',
+      view: new ol.View({
+        center: ol.proj.fromLonLat([36.8219, -1.2921]), // Nairobi, Kenya
+        zoom: 6,
+      }),
+      layers: [
+        new ol.layer.Tile({
+          source: new ol.source.OSM(), // OpenStreetMap Basemap
+        }),
+      ],
+    });
+
+    // 2. Setup the D3 Canvas
+    const d3Canvas = document.getElementById('d3-canvas');
+    const d3Context = d3Canvas.getContext('2d');
+
+    const resizeCanvas = () => {
+      const size = map.getSize();
+      d3Canvas.width = size[0];
+      d3Canvas.height = size[1];
+    };
+    map.on('resize', resizeCanvas);
+    resizeCanvas();
+
+    // 3. Render D3 Data on Canvas
+    const renderD3 = () => {
+      d3Context.clearRect(0, 0, d3Canvas.width, d3Canvas.height);
+
+      const data = [
+        { lon: 36.8219, lat: -1.2921, magnitude: 5.1 }, // Nairobi
+        { lon: 37.075, lat: -0.5143, magnitude: 4.7 }, // Meru
+        { lon: 35.282, lat: 0.515, magnitude: 5.8 },  // Eldoret
+      ];
+
+      const extent = map.getView().calculateExtent();
+      const projection = map.getView().getProjection();
+
+      data.forEach((d) => {
+        const coordinate = ol.proj.transform([d.lon, d.lat], 'EPSG:4326', projection);
+
+        if (ol.extent.containsCoordinate(extent, coordinate)) {
+          const pixel = map.getPixelFromCoordinate(coordinate);
+
+          if (pixel) {
+            d3Context.beginPath();
+            d3Context.arc(pixel[0], pixel[1], d.magnitude * 2, 0, 2 * Math.PI);
+            d3Context.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            d3Context.fill();
+            d3Context.strokeStyle = 'red';
+            d3Context.stroke();
+          }
+        }
+      });
+    };
+
+    // 4. Sync Canvas with Map Viewport
+    map.on('postrender', () => {
+      const rect = map.getViewport().getBoundingClientRect();
+      d3Canvas.style.position = 'absolute';
+      d3Canvas.style.top = `${rect.top}px`;
+      d3Canvas.style.left = `${rect.left}px`;
+      d3Canvas.width = map.getSize()[0];
+      d3Canvas.height = map.getSize()[1];
+    });
+
+    // 5. Animate and Redraw Features
+    renderD3(); // Initial render
+    map.on('postrender', renderD3); // Redraw after render
+    map.on('moveend', renderD3);   // Redraw after movement
+  </script>
+</body>
+</html>
