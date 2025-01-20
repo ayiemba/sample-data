@@ -132,8 +132,8 @@
             // 4.1 Create Groups for Points, Lines, and Polygons
             const polygonGroup = d3Svg.append("g").attr("class", "polygons");
             const lineGroup = d3Svg.append("g").attr("class", "lines");
-            const pointGroup = d3Svg.append("g").attr("class", "points");          
-            
+            const pointGroup = d3Svg.append("g").attr("class", "points");
+
 
             // 4.2 Render Points (Handle visibility)
             data.points.forEach((point) => {
@@ -259,6 +259,10 @@
             });
 
         };
+
+        let lastExtent = null;
+
+       
         // 5. Sync SVG with Map Viewport
         map.on('postrender', () => {
             const rect = map.getViewport().getBoundingClientRect();
@@ -271,7 +275,15 @@
 
         // 6. Animate and Redraw Features
         renderD3(); // Initial render
-        map.on('postrender', renderD3); // Redraw after render
+        map.on('postrender', () => {
+            const extent = map.getView().calculateExtent();
+            if (lastExtent && ol.extent.equals(lastExtent, extent)) {
+                return; // No need to redraw if the extent hasn't changed
+            }
+            lastExtent = extent;
+            renderD3(); // Call render only when the extent has changed
+        });
+        //map.on('postrender', renderD3); // Redraw after render
         map.on('moveend', renderD3);   // Redraw after movement
     </script>
 </body>
