@@ -1,24 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenLayers and D3 Integration</title>
     <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css">
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css">
+
     <style>
-        html, body, #map {
+        html,
+        body,
+        #map {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
         }
+
         svg {
-            pointer-events: none; /* Prevent interference with map interaction */
+            pointer-events: none;
+            /* Prevent interference with map interaction */
         }
     </style>
 </head>
+
 <body>
     <div id="map"></div>
     <script>
@@ -36,12 +44,13 @@
             ],
         });
 
+        // Custom Layer Class
         class CanvasLayer extends ol.layer.Layer {
             constructor(options) {
                 super(options);
 
-                this.features = options.features;
-                this.svgInitialized = false; // Flag to track SVG initialization
+                this.features = options.features.features; // GeoJSON features
+                console.log('features:', this.features);
 
                 // Create the SVG container
                 this.svgContainer = d3.select(document.createElement('div'))
@@ -54,6 +63,7 @@
                     .style('position', 'absolute')
                     .style('width', '100%')
                     .style('height', '100%');
+
                 this.svgLayer = this.svgContainer.append('g');
             }
 
@@ -61,75 +71,65 @@
                 return 'ready';
             }
 
-            // Render method
             render(frameState) {
-                const width = frameState.size[0];
-                const height = frameState.size[1];
+                const width = frameState.size[0]; // Width of the map viewport
+                const height = frameState.size[1]; // Height of the map viewport
                 const projection = frameState.viewState.projection;
-                const d3Projection = d3.geoMercator().scale(1).translate([0, 0]);
-                let d3Path = d3.geoPath().projection(d3Projection);
 
-                // Only proceed with rendering once SVG is initialized and features are available
-                if (!this.svgInitialized && this.features) {
-                    this.svgInitialized = true; // Mark SVG as initialized
+                // Convert the map's center to EPSG:4326 (longitude, latitude) for D3
+                const center = ol.proj.toLonLat(frameState.viewState.center, projection);
 
-                    const pixelBounds = d3Path.bounds(this.features);
-                    const pixelBoundsWidth = pixelBounds[1][0] - pixelBounds[0][0];
-                    const pixelBoundsHeight = pixelBounds[1][1] - pixelBounds[0][1];
+                // Set up the D3 projection
+                const d3Projection = d3.geoMercator()
+                    .scale((1 / frameState.viewState.resolution) * (width / (2 * Math.PI)))
+                    .center(center)
+                    .translate([width / 2, height / 2]);
 
-                    // Correcting the geoBounds usage
-                    const bounds = d3.geoBounds(this.features); // Correct function call
-                    const geoBoundsLeftBottom = ol.proj.fromLonLat(bounds[0], projection);
-                    const geoBoundsRightTop = ol.proj.fromLonLat(bounds[1], projection);
-                    let geoBoundsWidth = geoBoundsRightTop[0] - geoBoundsLeftBottom[0];
-                    if (geoBoundsWidth < 0) {
-                        geoBoundsWidth += ol.extent.getWidth(projection.getExtent());
-                    }
-                    const geoBoundsHeight = geoBoundsRightTop[1] - geoBoundsLeftBottom[1];
+                const d3Path = d3.geoPath().projection(d3Projection);
 
-                    const widthResolution = geoBoundsWidth / pixelBoundsWidth;
-                    const heightResolution = geoBoundsHeight / pixelBoundsHeight;
-                    const r = Math.max(widthResolution, heightResolution);
-                    const scale = r / frameState.viewState.resolution;
+                // Adjust the SVG container dimensions
+                this.svgContainer
+                    .attr('width', width)  // Match the map viewport width
+                    .attr('height', height); // Match the map viewport height
 
-                    const center = ol.proj.toLonLat(ol.extent.getCenter(frameState.extent), projection);
-                    const angle = (-frameState.viewState.rotation * 180) / Math.PI;
+                // Clear existing paths to avoid duplication
+                this.svgLayer.selectAll('path').remove();
 
-                    d3Projection
-                        .scale(scale)
-                        .center(center)
-                        .translate([width / 2, height / 2])
-                        .angle(angle);
-
-                    d3Path = d3Path.projection(d3Projection);
-                    d3Path(this.features);
-
-                    this.svgContainer.attr('width', width);
-                    this.svgContainer.attr('height', height);
-                    this.svgLayer.selectAll('path').remove(); // Clear existing paths
-
+                // Add paths for all features
+                this.features.forEach((feature) => {
                     this.svgLayer.append('path')
-                        .datum(this.features)
-                        .attr('class', 'boundary')
-                        .attr('d', d3Path);
+                        .datum(feature)
+                        .attr('d', d3Path)
+                        .attr('stroke', 'blue') // Styling the boundary
+                        .attr('stroke-width', 1)
+                        .attr('fill', 'none');
+                });
 
-                    // Append SVG to the map container
-                    map.getTargetElement().appendChild(this.svgContainer.node());
-                }
-
+                // Append the SVG container to the map's DOM element
+                map.getTargetElement().appendChild(this.svgContainer.node());
                 return this.svgContainer.node();
             }
+
+
         }
 
-        // Load the topojson data and create an ol/layer/Layer for that data
+        // Load the GeoJSON data
         d3.json('https://ayiemba.github.io/sample-data/countries.geojson').then(function (geojson) {
+            const options = { tolerance: 0.1, highQuality: false };
+            const simplifiedGeo = turf.simplify(geojson, options);
+
+            console.log('simplified geojson:', simplifiedGeo);
+
+            // Create and add the custom layer
             const layer = new CanvasLayer({
-                features: geojson.features,
+                features: simplifiedGeo,
             });
-
             map.addLayer(layer);
-        });
 
+            // Render the map
+            map.render();
+        });
     </script>
 </body>
+
 </html>
