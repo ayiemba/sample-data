@@ -34,8 +34,11 @@
         const map = new ol.Map({
             target: 'map',
             view: new ol.View({
-                center: ol.proj.fromLonLat([-97, 38]), // Center on the USA
-                zoom: 4,
+
+                center: ol.proj.fromLonLat([0, 0]), // Center the map at the origin
+                zoom: 1,
+                extent: [-20037508.34, -20037508.34, 20037508.34, 20037508.34], // world bounds
+                constrainOnlyCenter: false,
             }),
             layers: [
                 new ol.layer.Tile({
@@ -76,24 +79,69 @@
                 const height = frameState.size[1]; // Height of the map viewport
                 const projection = frameState.viewState.projection;
 
-                // Convert the map's center to EPSG:4326 (longitude, latitude) for D3
-                const center = ol.proj.toLonLat(frameState.viewState.center, projection);
+                const d3Projection = d3.geoMercator().scale(1).translate([0, 0]);
+                let d3Path = d3.geoPath().projection(d3Projection);
 
-                // Set up the D3 projection
-                const d3Projection = d3.geoMercator()
-                    .scale((1 / frameState.viewState.resolution) * (width / (2 * Math.PI)))
-                    .center(center)
-                    .translate([width / 2, height / 2]);
-
-                const d3Path = d3.geoPath().projection(d3Projection);
+                // Clear existing paths to avoid duplication
+                this.svgLayer.selectAll('path').remove();
 
                 // Adjust the SVG container dimensions
                 this.svgContainer
                     .attr('width', width)  // Match the map viewport width
                     .attr('height', height); // Match the map viewport height
 
-                // Clear existing paths to avoid duplication
-                this.svgLayer.selectAll('path').remove();
+                console.log('svgcontainer', this.svgContainer);
+
+                // Use d3.geoBounds() to calculate the bounds of all features
+                const bounds = d3.geoBounds({
+                    type: 'FeatureCollection',
+                    features: this.features,
+                });
+
+                console.log('geobounds', bounds);
+
+
+
+                // Calculate scale and resolution based on bounds and pixel size
+                const pixelBounds = d3Path.bounds({
+                    type: 'FeatureCollection',
+                    features: this.features,
+                });
+
+                console.log('pixelbounds', pixelBounds);
+
+                const pixelBoundsWidth = pixelBounds[1][0] - pixelBounds[0][0];
+                const pixelBoundsHeight = pixelBounds[1][1] - pixelBounds[0][1];
+
+                const geoBoundsLeftBottom = ol.proj.fromLonLat(bounds[0], projection);
+                const geoBoundsRightTop = ol.proj.fromLonLat(bounds[1], projection);
+                const geoBoundsWidth = geoBoundsRightTop[0] - geoBoundsLeftBottom[0];
+                const geoBoundsHeight = geoBoundsRightTop[1] - geoBoundsLeftBottom[1];
+
+                // Calculate width and height resolution
+                const widthResolution = geoBoundsWidth / pixelBoundsWidth;
+                const heightResolution = geoBoundsHeight / pixelBoundsHeight;
+                const r = Math.max(widthResolution, heightResolution);
+                const scale = r / frameState.viewState.resolution;
+
+                console.log('r', r);
+                console.log('scale', scale);
+                console.log('resolution', frameState.viewState.resolution);
+
+                // Calculate the center of the map
+                const centerCoordinate = ol.proj.toLonLat(ol.extent.getCenter(frameState.extent), projection);
+                const center = [centerCoordinate[0], centerCoordinate[1]];
+                const angle = (-frameState.viewState.rotation * 180) / Math.PI;
+
+                // Apply scale, center, and angle to the D3 projection
+                d3Projection
+                    .scale(100)
+                    .center(center)
+                    .translate([width / 2, height / 2])
+                    .angle(angle);
+
+                d3Path = d3Path.projection(d3Projection);
+                //var d3Path = d3.geoPath(null);
 
                 // Add paths for all features
                 this.features.forEach((feature) => {
@@ -109,16 +157,27 @@
                 map.getTargetElement().appendChild(this.svgContainer.node());
                 return this.svgContainer.node();
             }
-
-
         }
 
         // Load the GeoJSON data
-        d3.json('https://ayiemba.github.io/sample-data/countries.geojson').then(function (geojson) {
-            const options = { tolerance: 0.1, highQuality: false };
+        d3.json('https://ayiemba.github.io/sample-data/ZWE_adm2_A.geojson').then(function (geojson) {
+            const options = { tolerance: 0.01, highQuality: false };
             const simplifiedGeo = turf.simplify(geojson, options);
 
             console.log('simplified geojson:', simplifiedGeo);
+
+            // // Using Turf to ensure the correct winding order
+            // const fixedGeoJSON = turf.featureCollection(
+            //     geojson.features.map((feature) => {
+            //         if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+            //             // Flip the polygons if they are incorrectly ordered
+            //             feature.geometry.coordinates = feature.geometry.coordinates.map((coords) =>
+            //                 turf.flip(turf.polygon(coords)).geometry.coordinates
+            //             );
+            //         }
+            //         return feature;
+            //     })
+            // );
 
             // Create and add the custom layer
             const layer = new CanvasLayer({
