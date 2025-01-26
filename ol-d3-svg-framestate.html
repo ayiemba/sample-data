@@ -36,9 +36,9 @@
             view: new ol.View({
 
                 center: ol.proj.fromLonLat([0, 0]), // Center the map at the origin
-                zoom: 1,
-                extent: [-20037508.34, -20037508.34, 20037508.34, 20037508.34], // world bounds
-                constrainOnlyCenter: false,
+                zoom: 0,
+                //extent: [-20037508.34, -20037508.34, 20037508.34, 20037508.34], // world bounds
+                //constrainOnlyCenter: false,
             }),
             layers: [
                 new ol.layer.Tile({
@@ -53,19 +53,20 @@
                 super(options);
 
                 this.geojson = options.geojson; // GeoJSON object
-                console.log('features:', this.geojson.features);
+                //console.log('features:', this.geojson.features);
 
                 // Create the SVG container
                 this.svgContainer = d3.select(document.createElement('div'))
-                    .style('position', 'absolute')
+                    .style('position', 'absolute') // Absolute positioning for overlay
                     .style('top', '0')
                     .style('left', '0')
                     .style('width', '100%')
-                    .style('height', '100%')
-                    .append('svg')
-                    .style('position', 'absolute')
-                    .style('width', '100%')
-                    .style('height', '100%');
+                    .style('height', '100%') // Full size of parent
+                    .append('svg') // Append an SVG element
+                    .attr('width', '100%') // Set SVG attributes instead of styles
+                    .attr('height', '100%')
+                    .style('position', 'absolute'); // Keep absolute positioning for the SVG
+
 
                 // Define a clipping path
                 this.svgContainer.append('defs').append('clipPath')
@@ -80,7 +81,6 @@
                 this.svgLayer = this.svgContainer.append('g')
                     .attr('clip-path', 'url(#clip-path)');
 
-                //this.svgLayer = this.svgContainer.append('g');
             }
 
             getSourceState() {
@@ -88,117 +88,160 @@
             }
 
             render(frameState) {
+                const view = map.getView();
+                const width = frameState.size[0]; // Map viewport width
+                const height = frameState.size[1]; // Map viewport height
+                const resolution = frameState.viewState.resolution; // Meters per pixel
+                const center = ol.proj.toLonLat(frameState.viewState.center, frameState.viewState.projection); // Map center in [lon, lat]
 
-                const width = frameState.size[0]; // Width of the map viewport
-                const height = frameState.size[1]; // Height of the map viewport
-                const projection = frameState.viewState.projection;
-
-                const resolution = frameState.viewState.resolution; //map.getView().getResolution();
-                const pixelRatio = frameState.pixelRatio; // ol.has.DEVICE_PIXEL_RATIO; or window.devicePixelRatio;
-                const center = ol.proj.toLonLat(frameState.viewState.center, frameState.viewState.projection);
-
-
-                // Clear existing paths to avoid duplication
+                // Clear existing paths
                 this.svgLayer.selectAll('path').remove();
 
-                // Adjust the SVG container dimensions
+                // Set SVG dimensions to match the map viewport
                 this.svgContainer
-                    .attr('width', width)  // Match the map viewport width
-                    .attr('height', height); // Match the map viewport height
+                    .attr('width', width)
+                    .attr('height', height);
 
+                // Calculate the correct scale for D3's geoMercator
+                const scale = 6378137 / resolution; // Earth's radius in meters / resolution
 
-                // Trial projection with unit scale is used to compute bounding box
-                const d3Projection = d3.geoMercator().scale(1).translate([0, 0]);
-                let d3Path = d3.geoPath().projection(d3Projection);
-
-                // Compute the projected planar bounding box (typically in pixels) for the specified GeoJSON object. 
-                const pixelBounds = d3Path.bounds(this.geojson);
-                const pixelBoundsWidth = pixelBounds[1][0] - pixelBounds[0][0];
-                const pixelBoundsHeight = pixelBounds[1][1] - pixelBounds[0][1];
-
-                // Compute spherical bounding box: [lowerLeft, upperRight]
-                const geoBounds = d3.geoBounds(this.geojson);
-
-                // Compute the OpenLayers-projected bounding box from spherical bounding box
-                const geoBoundsLeftBottom = ol.proj.fromLonLat(geoBounds[0], projection);
-                const geoBoundsRightTop = ol.proj.fromLonLat(geoBounds[1], projection);
-                const geoBoundsWidth = geoBoundsRightTop[0] - geoBoundsLeftBottom[0];
-                if (geoBoundsWidth < 0) {
-                    geoBoundsWidth += ol.extent.getWidth(projection.getExtent());
-                }
-                const geoBoundsHeight = geoBoundsRightTop[1] - geoBoundsLeftBottom[1];
-
-                const widthResolution = geoBoundsWidth / pixelBoundsWidth;
-                const heightResolution = geoBoundsHeight / pixelBoundsHeight;
-                const r = Math.max(widthResolution, heightResolution);
-                const scale = r / (resolution / pixelRatio);
-
-                //const svgResolution = 360 / width;
-                //const scale = svgResolution / frameState.viewState.resolution;
-
-                //console.log('scale',scale);
-               
-                // Print some diagnostics
-                // let f = d3.format("\ ,d");
-                // console.log("Left bottom: " + geoBoundsLeftBottom.map(f) +
-                //     "<br>Right top: " + geoBoundsRightTop.map(f) +
-                //     "<br>widthResolution, heightResolution: " + widthResolution + ", " + heightResolution);
-
-                console.log('r', r);
-                console.log('scale', scale);
-                console.log('resolution', resolution);
-
-                //var center = ol.proj.toLonLat(ol.extent.getCenter(frameState.extent), projection);
-
-                d3Projection
+                // Configure D3's projection to align with OpenLayers
+                const d3Projection = d3.geoMercator()
                     .scale(scale)
-                    .center(center)
+                    .center(center) // Center in [lon, lat]
                     .translate([width / 2, height / 2]);
 
-                d3Path = d3Path.projection(d3Projection);
+                const d3Path = d3.geoPath().projection(d3Projection);
 
-                //this.svgLayer.selectAll('path').data(this.geojson.features).join('path').attr('d', d3Path);
-
-                // Add paths for all features
+                // Render features directly from GeoJSON (EPSG:4326)
                 this.geojson.features.forEach((feature) => {
                     this.svgLayer.append('path')
                         .datum(feature)
                         .attr('d', d3Path)
-                        .attr('stroke', 'blue') // Styling the boundary
+                        .attr('stroke', 'blue')
                         .attr('stroke-width', 1)
                         .attr('fill', 'none');
                 });
 
-                // Append the SVG container to the map's DOM element
-                map.getTargetElement().appendChild(this.svgContainer.node());
                 return this.svgContainer.node();
             }
+
+            // render(frameState) {
+
+            //     const view = map.getView();
+            //     const extent = view.calculateExtent(map.getSize())
+            //     const extentWGS84 = ol.proj.transformExtent(extent, view.getProjection(), 'EPSG:4326');
+
+            //     const width = frameState.size[0]; // Width of the map viewport
+            //     const height = frameState.size[1]; // Height of the map viewport
+            //     const projection = frameState.viewState.projection;
+
+            //     const resolution = frameState.viewState.resolution; //map.getView().getResolution();
+            //     const pixelRatio = frameState.pixelRatio; // ol.has.DEVICE_PIXEL_RATIO; or window.devicePixelRatio;
+            //     const center = ol.proj.toLonLat(frameState.viewState.center, frameState.viewState.projection);
+
+            //     // Clear existing paths to avoid duplication
+            //     this.svgLayer.selectAll('path').remove();
+
+            //     // Adjust the SVG container dimensions
+            //     this.svgContainer
+            //         .attr('width', width)  // Match the map viewport width
+            //         .attr('height', height); // Match the map viewport height
+
+            //     // Trial projection with unit scale is used to compute bounding box
+            //     const d3Projection = d3.geoMercator().scale(1).translate([0, 0]);
+            //     let d3Path = d3.geoPath().projection(d3Projection);
+
+            //     // Compute the projected planar bounding box (typically in pixels) for the specified GeoJSON object. 
+            //     const pixelBounds = d3Path.bounds(this.geojson);
+
+            //     const pixelBoundsWidth = pixelBounds[1][0] - pixelBounds[0][0];
+            //     const pixelBoundsHeight = pixelBounds[1][1] - pixelBounds[0][1];
+
+
+            //     //console.log('pixelbounds', pixelBoundsDegrees);
+
+            //     // Compute spherical bounding box: [lowerLeft, upperRight]
+            //     const geoBounds = d3.geoBounds(this.geojson);
+
+            //     console.log('geobounds', geoBounds);
+
+            //     // Compute the OpenLayers-projected bounding box from spherical bounding box
+            //     const geoBoundsLeftBottom = ol.proj.fromLonLat(geoBounds[0], projection);
+            //     const geoBoundsRightTop = ol.proj.fromLonLat(geoBounds[1], projection);
+
+            //     // Calculate the width between the left and right longitudes
+            //     const geoBoundsWidth = geoBoundsRightTop[0] - geoBoundsLeftBottom[0];
+
+            //     // If the width is negative, handle the longitude wraparound (crossing the antimeridian)
+            //     if (geoBoundsWidth < 0) {
+            //         //geoBoundsWidth += ol.extent.getWidth(projection.getExtent());
+            //         geoBoundsWidth += 360; // Add 360 degrees to account for the wraparound
+            //     }
+
+            //     const geoBoundsHeight = geoBoundsRightTop[1] - geoBoundsLeftBottom[1];
+
+            //     const widthResolution = geoBoundsWidth / pixelBoundsWidth;
+            //     const heightResolution = geoBoundsHeight / pixelBoundsHeight;
+
+            //     const r = Math.max(widthResolution, heightResolution);
+            //     const scale = r / (resolution / pixelRatio);
+
+            //     const olScale = resolution / (geoBoundsWidth / pixelBoundsWidth);
+            //     console.log('OL-derived scale:', olScale);
+
+            //     const nonPointScaleFactor = pixelBoundsWidth / geoBoundsWidth;
+
+            //     // Add paths for all features
+            //     this.geojson.features.forEach((feature) => {
+
+            //         if (feature.geometry.type !== "Point") {
+
+            //             d3Projection
+            //                 .scale(scale)
+            //                 .center(center)
+            //                 .translate([width / 2, height / 2]);
+
+
+            //             d3Path = d3Path.projection(d3Projection);
+
+            //         } else {
+            //             d3Projection
+            //                 .scale(scale)
+            //                 .center(center)
+            //                 .translate([width / 2, height / 2]);
+
+
+            //             d3Path = d3Path.projection(d3Projection);
+
+            //         }
+
+            //         this.svgLayer.append('path')
+            //             .datum(feature)
+            //             .attr('d', d3Path)
+            //             .attr('stroke', 'blue') // Styling the boundary
+            //             .attr('stroke-width', 1)
+            //             .attr('fill', 'none');
+            //     });
+
+            //     return this.svgContainer.node();
+            // }
+
         }
 
 
         // https://ayiemba.github.io/sample-data/countries.geojson
+        // https://ayiemba.github.io/sample-data/ZWE_adm2_A.geojson
         // https://ayiemba.github.io/sample-data/african-country-capitals.geojson
+        // https://osm-countries-geojson.monicz.dev/osm-countries-0-001.geojson
         // Load the GeoJSON data
-        d3.json('https://ayiemba.github.io/sample-data/countries.geojson').then(function (geojson) {
+        d3.json('https://ayiemba.github.io/sample-data/african-country-capitals.geojson').then(function (geojson) {
 
             const options = { tolerance: 0.01, highQuality: false };
 
             const simplifiedGeo = turf.simplify(geojson, options);
 
-            console.log('simplified geojson:', simplifiedGeo);
-
-            // // Using Turf to ensure the correct winding order
-            // const fixedGeoJSON = turf.featureCollection(
-            //     geojson.features.map((feature) => {
-            //         if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-            //             // Flip the polygons if they are incorrectly ordered
-            //             feature.geometry.coordinates = feature.geometry.coordinates.map((coords) =>
-            //                 turf.flip(turf.polygon(coords)).geometry.coordinates
-            //             );
-            //         }
-            //         return feature;
-            //     })
-            // );
+            //console.log('simplified geojson:', simplifiedGeo);
 
             // Create and add the custom layer
             const layer = new CanvasLayer({
@@ -210,6 +253,8 @@
             // Render the map
             map.render();
         });
+
+        
     </script>
 </body>
 
