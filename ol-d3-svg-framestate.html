@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0"></script>
+    <script src="https://unpkg.com/topojson-client@3"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css">
 
     <style>
@@ -88,34 +89,38 @@
             }
 
             render(frameState) {
-
-                const view = map.getView();
-                const width = frameState.size[0]; // Map viewport width
-                const height = frameState.size[1]; // Map viewport height
-                const resolution = frameState.viewState.resolution; // Meters per pixel
-                const center = ol.proj.toLonLat(frameState.viewState.center, frameState.viewState.projection); // Map center in [lon, lat]
+                const width = frameState.size[0];
+                const height = frameState.size[1];
+                const resolution = frameState.viewState.resolution;
+                const center = ol.proj.toLonLat(frameState.viewState.center, 'EPSG:3857');
 
                 // Clear existing paths
                 this.svgLayer.selectAll('path').remove();
 
-                // Set SVG dimensions to match the map viewport
+                // Update SVG dimensions
                 this.svgContainer
                     .attr('width', width)
                     .attr('height', height);
 
-                // Calculate the correct scale for D3's geoMercator
-                const scale = 6378137 / resolution; // Earth's radius in meters / resolution
-
-                // Configure D3's projection to align with OpenLayers
+                // Configure D3 projection
+                const scale = 6378137 / resolution;
                 const d3Projection = d3.geoMercator()
                     .scale(scale)
-                    .center(center) // Center in [lon, lat]
+                    .center(center)
                     .translate([width / 2, height / 2]);
 
                 const d3Path = d3.geoPath().projection(d3Projection);
 
-                // Render features directly from GeoJSON (EPSG:4326)
+                // Render features
                 this.geojson.features.forEach((feature) => {
+
+                    // Skip invalid geometries
+                    if (!feature.geometry || !feature.geometry.coordinates || feature.geometry.coordinates.length === 0) {
+                        console.warn('Skipping invalid feature:', feature);
+                        return;
+                    }
+
+                    // Render valid features
                     this.svgLayer.append('path')
                         .datum(feature)
                         .attr('d', d3Path)
@@ -127,36 +132,137 @@
                 return this.svgContainer.node();
             }
 
+            // render(frameState) {
+
+            //     const width = frameState.size[0]; // Map viewport width
+            //     const height = frameState.size[1]; // Map viewport height
+            //     const resolution = frameState.viewState.resolution; // Meters per pixel
+            //     const center = ol.proj.toLonLat(frameState.viewState.center, frameState.viewState.projection); // Map center in [lon, lat]
+
+            //     // Clear existing paths
+            //     this.svgLayer.selectAll('path').remove();
+
+            //     // Set SVG dimensions to match the map viewport
+            //     this.svgContainer
+            //         .attr('width', width)
+            //         .attr('height', height);
+
+            //     // Calculate the correct scale for D3's geoMercator
+            //     const scale = 6378137 / resolution; // Earth's radius in meters / resolution
+
+            //     // Configure D3's projection to align with OpenLayers
+            //     const d3Projection = d3.geoMercator()
+            //         .scale(scale)
+            //         .center(center) // Center in [lon, lat]
+            //         .translate([width / 2, height / 2]);
+
+            //     const d3Path = d3.geoPath().projection(d3Projection);
+
+            //     // Render features directly from GeoJSON (EPSG:4326)
+            //     this.geojson.features.forEach((feature) => {
+            //         this.svgLayer.append('path')
+            //             .datum(feature)
+            //             .attr('d', d3Path)
+            //             .attr('stroke', 'blue')
+            //             .attr('stroke-width', 1)
+            //             .attr('fill', 'none');
+            //     });
+
+            //     return this.svgContainer.node();
+            // }
+
         }
 
 
         // https://ayiemba.github.io/sample-data/countries.geojson
+        // https://ayiemba.github.io/sample-data/countries.json
         // https://ayiemba.github.io/sample-data/ZWE_adm2_A.geojson
+        // https://ayiemba.github.io/sample-data/zwe_adm2_a.json
         // https://ayiemba.github.io/sample-data/african-country-capitals.geojson
         // https://osm-countries-geojson.monicz.dev/osm-countries-0-001.geojson
+
         // Load the GeoJSON data
-        d3.json('https://ayiemba.github.io/sample-data/ZWE_adm2_A.geojson').then(function (geojson) {
+        d3.json('https://ayiemba.github.io/sample-data/countries.json').then(function (data) {
+
+            let geojson = {};
+
+            if (isTopoJSON(data)) {
+
+                geojson = convertSingleLayerTopoJSONToGeoJSON(data);
+
+            } else {
+
+                geojson = data;
+            }
+
 
             const options = { tolerance: 0.01, highQuality: false };
 
             const simplifiedGeo = turf.simplify(geojson, options);
 
-            //const cleaned = turf.buffer(simplifiedGeo, 1, { units: 'meters' });
-
-            //console.log('simplified geojson:', simplifiedGeo);
-
             // Create and add the custom layer
             const layer = new CanvasLayer({
-                geojson: cleaned,
+                geojson: simplifiedGeo,
             });
+
+            const extent = getFeaturesExtent(geojson);
+            // Fit map options
+            const fitMapOptions = {
+                padding: [50, 50, 50, 50],
+                duration: 1000,
+                easing: ol.easing.easeOut,
+            };
+
+            map.getView().fit(extent, fitMapOptions);
 
             map.addLayer(layer);
 
-            // Render the map
-            map.render();
         });
 
-        
+        // Get the spatial extent of the features (circle or choropleth)
+        function getFeaturesExtent(geojson) {
+
+            // Compute geographic bounds with D3
+            const bounds = d3.geoBounds(geojson); // [ [minLon, minLat], [maxLon, maxLat] ]   EPSG:4326      
+
+            // Convert bounds to EPSG:3857
+            const minCoords = ol.proj.fromLonLat(bounds[0], 'EPSG:3857'); // Convert [minLon, minLat]
+            const maxCoords = ol.proj.fromLonLat(bounds[1], 'EPSG:3857'); // Convert [maxLon, maxLat]
+            const extent = [...minCoords, ...maxCoords]; // [minX, minY, maxX, maxY]
+
+            return extent;
+
+        }
+
+        function convertSingleLayerTopoJSONToGeoJSON(topojsondata) {
+            if (!topojsondata || typeof topojsondata !== "object") {
+                throw new Error("Invalid TopoJSON object provided.");
+            }
+
+            if (!topojsondata.objects || typeof topojsondata.objects !== "object") {
+                throw new Error("Invalid or missing 'objects' property in TopoJSON.");
+            }
+
+            const layerNames = Object.keys(topojsondata.objects);
+
+            if (layerNames.length !== 1) {
+                throw new Error(
+                    `Expected a single layer in TopoJSON, but found ${layerNames.length}.`
+                );
+            }
+
+            const layerName = layerNames[0]; // Extract the name of the single layer
+            return topojson.feature(topojsondata, topojsondata.objects[layerName]);
+        }
+
+        function isTopoJSON(json) {
+            // Check if the JSON has the unique characteristics of TopoJSON
+            return json.type === "Topology" &&
+                typeof json.objects === "object" &&
+                Array.isArray(json.arcs);
+        }
+
+
     </script>
 </body>
 
