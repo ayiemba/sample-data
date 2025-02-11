@@ -1,0 +1,365 @@
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Migration Routes Map - Kenya Origin Filter</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
+  <style>
+    #map {
+      width: 100%;
+      height: 90vh;
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">Migration Routes Visualization</h2>
+  <div id="map"></div>
+  
+  <script>
+    // Base map layer
+    const baseLayer = new ol.layer.Tile({
+      source: new ol.source.OSM()
+    });
+    
+    // Create a vector source with a custom loader that filters for routes with origin "Kenya"
+    const vectorSource = new ol.source.Vector({
+      loader: function(extent, resolution, projection) {
+        fetch('http://localhost:8000/migration_routes.geojson')
+          .then(response => response.json())
+          .then(json => {
+            // Read features from the GeoJSON, transforming from EPSG:4326 to the view projection.
+            const features = new ol.format.GeoJSON().readFeatures(json, {
+              dataProjection: 'EPSG:4326',
+              featureProjection: projection
+            });
+            
+            // Filter features so that only those with origin equal to "Kenya" are kept.
+            const filteredFeatures = features.filter(feature => feature.get('origin') === 'Kenya');
+            console.log(filteredFeatures);
+            vectorSource.addFeatures(filteredFeatures);
+          })
+          .catch(error => console.error('Error loading GeoJSON:', error));
+      },
+      strategy: ol.loadingstrategy.all
+    });
+    
+    // Create a migration layer that will use a style function
+    const migrationLayer = new ol.layer.Vector({
+      source: vectorSource
+    });
+    
+    // This function creates a tapered arrow polygon given a start and end point.
+    // The arrow is drawn as a triangle whose base is computed at a fraction of the route length.
+    function createTaperedArrow(start, end, lineWidth) {
+      // Compute vector from start to end
+      let dx = end[0] - start[0];
+      let dy = end[1] - start[1];
+      let distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance === 0) {
+        return new ol.geom.Polygon([[start, start, start, start]]);
+      }
+      
+      // Normalize the vector
+      const ux = dx / distance;
+      const uy = dy / distance;
+      
+      // Set the arrow length as a fraction of the total route length
+      // (adjust the fraction or set a max length as needed)
+      let arrowLength = Math.min(distance * 0.25, 50); // 25% of route length or a maximum of 50 map units
+      
+      // Determine the base point of the arrow by moving back from the destination
+      let arrowBase = [end[0] - arrowLength * ux, end[1] - arrowLength * uy];
+      
+      // Perpendicular vector (to the right of the route direction)
+      let perpX = -uy;
+      let perpY = ux;
+      
+      // Define the arrow width at its base.
+      // You can adjust the multiplier (here lineWidth * 5) to change the arrow’s width.
+      let arrowWidth = lineWidth * 5;
+      let halfArrowWidth = arrowWidth / 2;
+      
+      // Compute left and right points of the arrow base by offsetting the base point
+      let baseLeft = [arrowBase[0] + perpX * halfArrowWidth, arrowBase[1] + perpY * halfArrowWidth];
+      let baseRight = [arrowBase[0] - perpX * halfArrowWidth, arrowBase[1] - perpY * halfArrowWidth];
+      
+      // Create a triangular polygon: [baseLeft, baseRight, destination, baseLeft]
+      return new ol.geom.Polygon([[ baseLeft, baseRight, end, baseLeft ]]);
+    }
+    
+    // Style function to draw the blue route line and the tapered red arrow at the destination.
+    const styleFunction = function(feature) {
+      const geometry = feature.getGeometry();
+      const coords = geometry.getCoordinates();
+      const start = coords[0];
+      const end = coords[coords.length - 1];
+      const lineWidth = feature.get('lineWidth') || 2;
+      
+      // Define the line style for the route
+      const lineStyle = new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: 'blue',
+          width: lineWidth
+        })
+      });
+      
+      // Create the tapered arrow geometry using the start and end points
+      const arrowGeom = createTaperedArrow(start, end, lineWidth);
+      
+      // Define the style for the tapered arrow polygon
+      const arrowStyle = new ol.style.Style({
+        geometry: arrowGeom,
+        fill: new ol.style.Fill({
+          color: 'red'
+        }),
+        stroke: new ol.style.Stroke({
+          color: 'red',
+          width: 1
+        })
+      });
+      
+      return [lineStyle, arrowStyle];
+    };
+    
+    migrationLayer.setStyle(styleFunction);
+    
+    // Initialize the map, centered on Nairobi (Kenya)
+    const map = new ol.Map({
+      target: 'map',
+      layers: [baseLayer, migrationLayer],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([36.8219, -1.2921]),
+        zoom: 4
+      })
+    });
+  </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Migration Routes Map – Curved Tapered Routes</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v10.3.1/ol.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ol@v10.3.1/dist/ol.js"></script>
+  <style>
+    #map {
+      width: 100%;
+      height: 90vh;
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">Migration Routes Visualization</h2>
+  <div id="map"></div>
+
+  <script>
+    /***************************************
+     * Utility Functions for the Curve and
+     * Tapered Ribbon Generation
+     ***************************************/
+
+    // Generates points along a quadratic Bézier curve.
+    function getQuadraticBezierPoints(P0, CP, P1, segments) {
+      const points = [];
+      for (let i = 0; i <= segments; i++) {
+        const t = i / segments;
+        const x = Math.pow(1 - t, 2) * P0[0] +
+                  2 * (1 - t) * t * CP[0] +
+                  Math.pow(t, 2) * P1[0];
+        const y = Math.pow(1 - t, 2) * P0[1] +
+                  2 * (1 - t) * t * CP[1] +
+                  Math.pow(t, 2) * P1[1];
+        points.push([x, y]);
+      }
+      return points;
+    }
+
+    // Creates a polygon that represents a variable-width ribbon along a curve.
+    // The width increases linearly from minWidth at the start to maxWidth at the end.
+    function createVariableWidthPolygon(bezierPoints, minWidth, maxWidth) {
+      const leftSide = [];
+      const rightSide = [];
+      const n = bezierPoints.length;
+      
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1);
+        // Compute the width at this point (capped by maxWidth)
+        let width = minWidth + (maxWidth - minWidth) * t;
+        if (width > maxWidth) { width = maxWidth; }
+        
+        // Approximate the tangent vector
+        let tangent;
+        if (i === 0) {
+          tangent = [
+            bezierPoints[1][0] - bezierPoints[0][0],
+            bezierPoints[1][1] - bezierPoints[0][1]
+          ];
+        } else if (i === n - 1) {
+          tangent = [
+            bezierPoints[n - 1][0] - bezierPoints[n - 2][0],
+            bezierPoints[n - 1][1] - bezierPoints[n - 2][1]
+          ];
+        } else {
+          tangent = [
+            bezierPoints[i + 1][0] - bezierPoints[i - 1][0],
+            bezierPoints[i + 1][1] - bezierPoints[i - 1][1]
+          ];
+        }
+        
+        // Normalize the tangent
+        let len = Math.sqrt(tangent[0] ** 2 + tangent[1] ** 2);
+        if (len === 0) { len = 1; }
+        const ux = tangent[0] / len;
+        const uy = tangent[1] / len;
+        // Compute perpendicular vector (rotated 90°)
+        const perp = [-uy, ux];
+        const offset = width / 2;
+        leftSide.push([bezierPoints[i][0] + perp[0] * offset,
+                       bezierPoints[i][1] + perp[1] * offset]);
+        rightSide.push([bezierPoints[i][0] - perp[0] * offset,
+                        bezierPoints[i][1] - perp[1] * offset]);
+      }
+      // Combine the left side with the reversed right side to form a closed polygon
+      const polygonCoords = leftSide.concat(rightSide.reverse());
+      polygonCoords.push(polygonCoords[0]); // Close the ring
+      return new ol.geom.Polygon([polygonCoords]);
+    }
+
+    // Computes a control point for the quadratic Bézier curve.
+    // The control point is the midpoint of the start and end offset perpendicularly.
+    // The offsetFactor (computed via simple collision detection) adjusts the curvature.
+    function computeControlPoint(start, end, offsetFactor) {
+      const mid = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+      const dx = end[0] - start[0];
+      const dy = end[1] - start[1];
+      // Perpendicular vector to the line from start to end
+      let perp = [-dy, dx];
+      let len = Math.sqrt(perp[0] ** 2 + perp[1] ** 2);
+      if (len === 0) { len = 1; }
+      perp = [perp[0] / len, perp[1] / len];
+      const distance = Math.sqrt(dx ** 2 + dy ** 2);
+      // The offset magnitude is proportional to the distance and adjusted by offsetFactor.
+      const offsetMag = (distance / 4) + offsetFactor;
+      return [mid[0] + perp[0] * offsetMag, mid[1] + perp[1] * offsetMag];
+    }
+
+    /***************************************
+     * Vector Source and Collision Handling
+     ***************************************/
+    
+    // Create a vector source that loads the GeoJSON and filters for routes with origin "Kenya"
+    const vectorSource = new ol.source.Vector({
+      loader: function(extent, resolution, projection) {
+        fetch('http://localhost:8000/migration_routes.geojson')
+          .then(response => response.json())
+          .then(json => {
+            const features = new ol.format.GeoJSON().readFeatures(json, {
+              dataProjection: 'EPSG:4326',
+              featureProjection: projection
+            });
+            
+            // Filter for features where the 'origin' property equals "Kenya"
+            const filteredFeatures = features.filter(feature => feature.get('origin') === 'Kenya');
+            
+            // Simple collision detection: group features by destination.
+            // If several routes share the same destination (or nearly the same),
+            // assign them a different offset to separate the curves.
+            const groups = {};
+            filteredFeatures.forEach(feature => {
+              const coords = feature.getGeometry().getCoordinates();
+              const end = coords[coords.length - 1];
+              const key = end.join(',');
+              if (!groups[key]) {
+                groups[key] = [];
+              }
+              groups[key].push(feature);
+            });
+            // For each group assign an offset value (in map units).
+            // The offsets are centered around zero.
+            for (const key in groups) {
+              const group = groups[key];
+              const count = group.length;
+              for (let i = 0; i < count; i++) {
+                // Adjust the multiplier (here 10) as needed to space out overlapping routes.
+                group[i].set('offset', (i - (count - 1) / 2) * 10);
+              }
+            }
+            
+            vectorSource.addFeatures(filteredFeatures);
+          })
+          .catch(error => console.error('Error loading GeoJSON:', error));
+      },
+      strategy: ol.loadingstrategy.all
+    });
+    
+    /***************************************
+     * Style Function to Render the Curved Tapered Routes
+     ***************************************/
+    
+    const migrationLayer = new ol.layer.Vector({
+      source: vectorSource
+    });
+    
+    const styleFunction = function(feature) {
+      // Retrieve the original coordinates (assumed to be a simple LineString)
+      const geometry = feature.getGeometry();
+      const coords = geometry.getCoordinates();
+      const start = coords[0];
+      const end = coords[coords.length - 1];
+      
+      // Retrieve the offset computed via collision detection (if any)
+      const offsetFactor = feature.get('offset') || 0;
+      
+      // Compute a control point for the Bézier curve, using the offset factor.
+      const controlPoint = computeControlPoint(start, end, offsetFactor);
+      
+      // Generate an array of points along the Bézier curve.
+      const segments = 50;
+      const bezierPoints = getQuadraticBezierPoints(start, controlPoint, end, segments);
+      
+      // Define the tapered width parameters.
+      const minWidth = 2;   // Starting (minimum) width
+      const maxWidth = 10;  // Maximum width (cap)
+      
+      // Create a variable-width polygon (ribbon) along the curved line.
+      const taperedRouteGeom = createVariableWidthPolygon(bezierPoints, minWidth, maxWidth);
+      
+      // Define a style that fills the tapered ribbon and optionally outlines it.
+      const routeStyle = new ol.style.Style({
+        geometry: taperedRouteGeom,
+        fill: new ol.style.Fill({ color: 'rgba(0, 0, 255, 0.5)' }),
+        stroke: new ol.style.Stroke({ color: 'blue', width: 1 })
+      });
+      
+      return [routeStyle];
+    };
+    
+    migrationLayer.setStyle(styleFunction);
+    
+    /***************************************
+     * Initialize the Map
+     ***************************************/
+    
+    const baseLayer = new ol.layer.Tile({
+      source: new ol.source.OSM()
+    });
+    
+    const map = new ol.Map({
+      target: 'map',
+      layers: [baseLayer, migrationLayer],
+      view: new ol.View({
+        center: ol.proj.fromLonLat([36.8219, -1.2921]), // Centered near Nairobi, Kenya.
+        zoom: 4
+      })
+    });
+  </script>
+</body>
+</html>
+
